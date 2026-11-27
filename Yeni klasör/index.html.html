@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>Hızlı Aktarım & Notlar</title>
+<style>
+  * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  body { margin: 0; background: #f1f5f9; color: #0f172a; padding: 12px; }
+  .app-wrapper { max-width: 960px; margin: 0 auto; }
+  
+  .nav-bar { background: #fff; border-radius: 14px; padding: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 14px; flex-wrap: wrap; }
+  .nav-tabs { display: flex; gap: 6px; }
+  .tab-btn { border: none; background: transparent; padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 700; color: #475569; cursor: pointer; transition: 0.15s; }
+  .tab-btn.active { background: #2563eb; color: #fff; }
+  .conn-badge { font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; background: #fef3c7; color: #92400e; }
+  .conn-ok { background: #dcfce7; color: #166534; }
+  .conn-err { background: #fee2e2; color: #991b1b; }
+
+  .panel { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; background: #f8fafc; text-align: center; }
+  .code-box { font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #2563eb; background: #eff6ff; padding: 8px 18px; border-radius: 10px; display: inline-block; margin: 8px 0; border: 2px dashed #93c5fd; }
+  #qrcode { display: flex; justify-content: center; align-items: center; margin: 10px auto; background: #fff; padding: 10px; border-radius: 10px; width: 164px; height: 164px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .btn { background: #2563eb; color: #fff; border: none; padding: 10px 16px; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; }
+  .btn:hover { background: #1d4ed8; }
+  .btn-green { background: #059669; }
+  .btn-red { background: #dc2626; width: auto; padding: 6px 12px; font-size: 12px; }
+  .btn-sm { width: auto; padding: 6px 12px; font-size: 12px; }
+  input.room-input { width: 100%; max-width: 190px; padding: 10px; font-size: 24px; text-align: center; letter-spacing: 6px; border: 2px solid #3b82f6; border-radius: 10px; margin: 8px auto; font-weight: 800; color: #1e3a8a; display: block; }
+  textarea.msg-box { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 13px; resize: vertical; min-height: 72px; margin-bottom: 8px; }
+  .drop-zone { border: 2px dashed #3b82f6; background: #eff6ff; border-radius: 12px; padding: 20px 12px; cursor: pointer; text-align: center; }
+  .active-bar { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 10px 14px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .feed-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .feed-item { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .feed-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+  .feed-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+  .feed-icon { width: 56px; height: 56px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+  .feed-info { min-width: 0; flex: 1; text-align: left; }
+  .feed-title { font-size: 13px; font-weight: 600; color: #1e293b; word-break: break-word; }
+  .feed-meta { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .text-preview { background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px; word-break: break-word; white-space: pre-wrap; margin-top: 4px; }
+  .status { font-size: 13px; color: #059669; font-weight: 600; margin-top: 8px; text-align: center; }
+  .error { color: #dc2626; }
+  .hidden { display: none !important; }
+
+  .notes-shell { display: grid; grid-template-columns: 280px 1fr; min-height: 540px; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #fff; }
+  @media (max-width: 700px) { .notes-shell { grid-template-columns: 1fr; min-height: auto; } }
+  .sidebar { background: #f8fafc; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; max-height: 600px; }
+  .sidebar-header { padding: 14px; border-bottom: 1px solid #e2e8f0; background: #fff; }
+  .search-box { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; margin-top: 10px; outline: none; }
+  .note-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .note-card { background: #fff; padding: 11px 12px; border-radius: 9px; border: 1px solid #e2e8f0; cursor: pointer; position: relative; }
+  .note-card.active { background: #eff6ff; border-color: #2563eb; }
+  .note-card-title { font-size: 14px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 18px; }
+  .note-card-preview { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
+  .note-card-date { font-size: 10px; color: #94a3b8; margin-top: 5px; }
+  .pin-badge { position: absolute; top: 10px; right: 10px; font-size: 12px; }
+  .editor-area { display: flex; flex-direction: column; background: #fff; }
+  .editor-toolbar { padding: 12px 18px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; background: #fafafa; }
+  .tool-actions { display: flex; gap: 6px; }
+  .tool-btn { background: #fff; border: 1px solid #cbd5e1; color: #334155; padding: 6px 11px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .tool-btn.pinned { background: #fef3c7; border-color: #f59e0b; color: #b45309; }
+  .tool-btn.danger { color: #dc2626; border-color: #fecaca; }
+  .editor-body { flex: 1; padding: 18px; display: flex; flex-direction: column; }
+  .title-input { width: 100%; border: none; outline: none; font-size: 21px; font-weight: 700; color: #0f172a; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; }
+  .content-input { width: 100%; flex: 1; border: none; outline: none; font-size: 15px; line-height: 1.6; color: #334155; resize: none; min-height: 350px; }
+  .editor-footer { padding: 8px 18px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; }
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="app-wrapper">
+  <div class="nav-bar">
+    <div class="nav-tabs">
+      <button type="button" id="tabTransferBtn" class="tab-btn active" onclick="switchTab('transfer')">⚡ Hızlı Aktarım</button>
+      <button type="button" id="tabNotesBtn" class="tab-btn" onclick="switchTab('notes')">📝 Bulut Not Defteri</button>
+    </div>
+    <span id="connBadge" class="conn-badge">⏳ Bağlanıyor...</span>
+  </div>
+
+  <!-- SEKME 1: HIZLI AKTARIM -->
+  <div id="transferTab" class="panel">
+    <div id="pcConnectView" class="grid">
+      <div class="card">
+        <strong>1. Telefonla QR Kodu Okutun</strong>
+        <div id="qrcode"></div>
+        <div style="font-size:12px; color:#64748b;">Kamerayı okutunca uygulama telefonda açılır</div>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column; justify-content:center;">
+        <strong>2. Oda Kodunu Telefona Girin</strong>
+        <div><span id="roomCodeDisplay" class="code-box">----</span></div>
+        <div style="font-size:12px; color:#475569; margin-bottom:10px;">Telefonda açılan kutucuğa bu 4 haneli kodu yazın</div>
+        <button class="btn" type="button" onclick="showPhoneConnect()">Bu Cihazdan Odaya Bağlan (Telefon)</button>
+      </div>
+    </div>
+
+    <div id="phoneConnectView" class="card hidden">
+      <strong>Bilgisayardaki 4 Haneli Oda Kodunu Girin</strong>
+      <input type="text" class="room-input" id="joinInput" maxlength="4" placeholder="0000" inputmode="numeric" pattern="[0-9]*">
+      <button class="btn btn-green" type="button" style="max-width:220px;" onclick="connectFromPhone()">Odaya Bağlan</button>
+      <div id="connectError" class="status error"></div>
+      <div style="margin-top:12px;">
+        <button type="button" style="background:none; border:none; color:#64748b; text-decoration:underline; cursor:pointer; font-size:12px;" onclick="resetToPc()">← Yeni Oda Oluştur (Bilgisayar Ekranı)</button>
+      </div>
+    </div>
+
+    <div id="workspaceView" class="hidden" style="margin-top:14px;">
+      <div class="active-bar">
+        <div>
+          <strong>Aktif Oda: <span id="activeRoomBadge" style="font-size:16px; letter-spacing:2px;">----</span></strong>
+          <span id="deviceLabel" style="font-size:12px; margin-left:6px;"></span>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-sm" type="button" style="background:#0284c7;" onclick="changeRoom()">Oda Değiştir</button>
+          <button class="btn btn-red" type="button" onclick="clearRoom()">Odayı Temizle</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card" style="text-align:left;">
+          <strong style="display:block; margin-bottom:8px;">📁 Dosya veya Fotoğraf Gönder</strong>
+          <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size:28px; margin-bottom:4px;">📸 📄</div>
+            <strong style="font-size:13px;">Seçmek İçin Tıklayın / Dokunun</strong>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">Galeri, PDF, Word, Excel, ZIP</div>
+          </div>
+          <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" class="hidden" onchange="handleFiles(this.files)">
+        </div>
+
+        <div class="card" style="text-align:left;">
+          <strong style="display:block; margin-bottom:8px;">💬 Hızlı Metin veya Link Gönder</strong>
+          <textarea class="msg-box" id="textInput" placeholder="Link, yazı numarası veya not yapıştırın..."></textarea>
+          <button class="btn btn-green" type="button" onclick="sendText()">Metni Karşı Cihaza Gönder</button>
+        </div>
+      </div>
+
+      <div id="uploadStatus" class="status"></div>
+
+      <div id="feedSection" class="hidden" style="margin-top:20px; border-top:1px solid #e2e8f0; padding-top:14px;">
+        <strong style="font-size:15px;">Odadaki Paylaşımlar (<span id="itemCount">0</span>)</strong>
+        <div id="feedList" class="feed-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEKME 2: BULUT NOT DEFTERİ -->
+  <div id="notesTab" class="notes-shell hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <button type="button" class="btn" onclick="createNewNote()">+ Yeni Not Oluştur</button>
+        <input type="text" id="searchInput" class="search-box" placeholder="Notlarda ara..." oninput="renderNoteList()">
+      </div>
+      <div id="noteList" class="note-list"><div style="padding:14px; font-size:12px; color:#64748b;">Notlar yükleniyor...</div></div>
+    </div>
+
+    <div class="editor-area">
+      <div id="editorToolbar" class="editor-toolbar hidden">
+        <span id="saveStatus" style="font-size:12px; color:#059669; font-weight:600;">✓ Kaydedildi</span>
+        <div class="tool-actions">
+          <button type="button" id="pinBtn" class="tool-btn" onclick="togglePin()">📌 Sabitle</button>
+          <button type="button" id="copyBtn" class="tool-btn" onclick="copyCurrentNote()">📋 Kopyala</button>
+          <button type="button" class="tool-btn danger" onclick="deleteCurrentNote()">🗑️ Sil</button>
+        </div>
+      </div>
+
+      <div id="editorBody" class="editor-body hidden">
+        <input type="text" id="noteTitle" class="title-input" placeholder="Not başlığı..." oninput="scheduleNoteSave()">
+        <textarea id="noteContent" class="content-input" placeholder="Buraya yazmaya başlayın... (Tüm cihazlarınızda anında senkronize olur)" oninput="scheduleNoteSave()"></textarea>
+      </div>
+
+      <div id="emptyState" class="empty-state">
+        <div style="font-size:42px; margin-bottom:10px;">📝</div>
+        <strong style="color:#475569; font-size:16px;">Bulut Not Defteriniz Hazır</strong>
+        <p style="font-size:13px; max-width:280px;">Sol taraftan mevcut bir notu seçin veya <b>"Yeni Not Oluştur"</b> butonuna tıklayın.</p>
+      </div>
+
+      <div id="editorFooter" class="editor-footer hidden">
+        <span id="charCount">0 karakter</span>
+        <span id="lastUpdated"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const FIREBASE_DB_URL = "https://veriaktar-62e7a-default-rtdb.europe-west1.firebasedatabase.app";
+
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const myDevice = isMobile ? "📱 Telefon" : "💻 Bilgisayar";
+  let currentRoom = "";
+  let knownIds = new Set();
+  let totalItems = 0;
+  let roomPoll = null;
+
+  let notes = {};
+  let activeNoteId = null;
+  let noteSaveTimer = null;
+
+  function switchTab(tab) {
+    document.getElementById("tabTransferBtn").classList.toggle("active", tab === "transfer");
+    document.getElementById("tabNotesBtn").classList.toggle("active", tab === "notes");
+    document.getElementById("transferTab").classList.toggle("hidden", tab !== "transfer");
+    document.getElementById("notesTab").classList.toggle("hidden", tab !== "notes");
+    if (tab === "notes") loadNotes();
+  }
+
+  async function checkFirebase() {
+    const badge = document.getElementById("connBadge");
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/.json?shallow=true`);
+      if (res.ok) {
+        badge.className = "conn-badge conn-ok";
+        badge.innerText = "● Sistem Aktif";
+      } else {
+        badge.className = "conn-badge conn-err";
+        badge.innerText = "⚠ İzin Hatası";
+      }
+    } catch (e) {
+      badge.className = "conn-badge conn-err";
+      badge.innerText = "⚠ Bağlantı Hatası";
+    }
+  }
+
+  function drawLocalQR(text) {
+    const el = document.getElementById("qrcode");
+    const qr = generateQRMatrix(text);
+    const size = qr.length;
+    let svg = `<svg viewBox="0 0 ${size} ${size}" width="144" height="144" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">`;
+    svg += `<rect width="${size}" height="${size}" fill="#ffffff"/>`;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (qr[r][c]) svg += `<rect x="${c}" y="${r}" width="1" height="1" fill="#0f172a"/>`;
+      }
+    }
+    svg += `</svg>`;
+    el.innerHTML = svg;
+  }
+
+  function generateQRMatrix(data) {
+    const size = 37;
+    const grid = Array.from({ length: size }, () => Array(size).fill(null));
+    const reserved = Array.from({ length: size }, () => Array(size).fill(false));
+    function setMod(r, c, val, res = true) {
+      if (r >= 0 && r < size && c >= 0 && c < size) { grid[r][c] = val; if (res) reserved[r][c] = true; }
+    }
+    function finder(r, c) {
+      for (let dr = -1; dr <= 7; dr++) {
+        for (let dc = -1; dc <= 7; dc++) {
+          const inBox = dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6;
+          const border = dr === 0 || dr === 6 || dc === 0 || dc === 6;
+          const center = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;
+          setMod(r + dr, c + dc, inBox && (border || center));
+        }
+      }
+    }
+    finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+    for (let dr = -2; dr <= 2; dr++) {
+      for (let dc = -2; dc <= 2; dc++) {
+        setMod(30 + dr, 30 + dc, Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0));
+      }
+    }
+    for (let i = 8; i < size - 8; i++) { setMod(6, i, i % 2 === 0); setMod(i, 6, i % 2 === 0); }
+    for (let i = 0; i < 9; i++) { if (i !== 6) { setMod(8, i, false); setMod(i, 8, false); } }
+    for (let i = 0; i < 8; i++) { setMod(8, size - 1 - i, false); setMod(size - 1 - i, 8, false); }
+    setMod(size - 8, 8, true);
+
+    const bytes = new TextEncoder().encode(data);
+    const bits = [];
+    const pushBits = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+    pushBits(4, 4); pushBits(bytes.length, 8);
+    bytes.forEach(b => pushBits(b, 8));
+    pushBits(0, 4);
+    while (bits.length % 8 !== 0) bits.push(0);
+
+    const dataCodewords = [];
+    for (let i = 0; i < bits.length; i += 8) {
+      let byte = 0;
+      for (let j = 0; j < 8; j++) byte = (byte << 1) | bits[i + j];
+      dataCodewords.push(byte);
+    }
+    const pads = [0xec, 0x11];
+    let pIdx = 0;
+    while (dataCodewords.length < 108) { dataCodewords.push(pads[pIdx % 2]); pIdx++; }
+
+    const gfExp = new Uint8Array(512), gfLog = new Uint8Array(256);
+    let x = 1;
+    for (let i = 0; i < 255; i++) { gfExp[i] = x; gfLog[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+    for (let i = 255; i < 512; i++) gfExp[i] = gfExp[i - 255];
+    const gfMul = (a, b) => (a === 0 || b === 0) ? 0 : gfExp[gfLog[a] + gfLog[b]];
+
+    let gen = [1];
+    for (let i = 0; i < 26; i++) {
+      const next = new Array(gen.length + 1).fill(0);
+      const factor = gfExp[i];
+      for (let j = 0; j < gen.length; j++) { next[j] ^= gen[j]; next[j + 1] ^= gfMul(gen[j], factor); }
+      gen = next;
+    }
+    const msg = dataCodewords.concat(new Array(26).fill(0));
+    for (let i = 0; i < 108; i++) {
+      const coef = msg[i];
+      if (coef !== 0) { for (let j = 0; j < gen.length; j++) msg[i + j] ^= gfMul(gen[j], coef); }
+    }
+    const allCodewords = dataCodewords.concat(msg.slice(108));
+    const allBits = [];
+    allCodewords.forEach(cw => { for (let i = 7; i >= 0; i--) allBits.push((cw >> i) & 1); });
+
+    let bitIdx = 0, dir = -1;
+    for (let col = size - 1; col > 0; col -= 2) {
+      if (col === 6) col--;
+      for (let i = 0; i < size; i++) {
+        const r = dir === -1 ? size - 1 - i : i;
+        for (let dc = 0; dc < 2; dc++) {
+          const c = col - dc;
+          if (!reserved[r][c]) {
+            const bit = bitIdx < allBits.length ? allBits[bitIdx++] : 0;
+            grid[r][c] = (bit ^ ((r + c) % 2 === 0 ? 1 : 0)) === 1;
+          }
+        }
+      }
+      dir *= -1;
+    }
+    const fmt = 0x77c4;
+    for (let i = 0; i < 6; i++) setMod(8, i, ((fmt >> (14 - i)) & 1) === 1, false);
+    setMod(8, 7, ((fmt >> 8) & 1) === 1, false);
+    setMod(8, 8, ((fmt >> 7) & 1) === 1, false);
+    setMod(7, 8, ((fmt >> 6) & 1) === 1, false);
+    for (let i = 0; i < 6; i++) setMod(5 - i, 8, ((fmt >> (5 - i)) & 1) === 1, false);
+    for (let i = 0; i < 7; i++) setMod(size - 1 - i, 8, ((fmt >> (14 - i)) & 1) === 1, false);
+    for (let i = 0; i < 8; i++) setMod(8, size - 8 + i, ((fmt >> (7 - i)) & 1) === 1, false);
+    return grid;
+  }
+
+  function getBaseUrl() {
+    return window.location.origin + window.location.pathname;
+  }
+
+  function init() {
+    checkFirebase();
+    const params = new URLSearchParams(window.location.search);
+    const odaParam = params.get("oda");
+
+    if (odaParam && odaParam.length === 4 && !isNaN(odaParam)) {
+      enterWorkspace(odaParam, true);
+    } else if (isMobile) {
+      showPhoneConnect();
+    } else {
+      currentRoom = Math.floor(1000 + Math.random() * 9000).toString();
+      document.getElementById("roomCodeDisplay").innerText = currentRoom;
+      drawLocalQR(getBaseUrl() + "?oda=" + currentRoom);
+      enterWorkspace(currentRoom, false);
+    }
+  }
+
+  function showPhoneConnect() {
+    if (roomPoll) clearInterval(roomPoll);
+    document.getElementById("pcConnectView").classList.add("hidden");
+    document.getElementById("workspaceView").classList.add("hidden");
+    document.getElementById("phoneConnectView").classList.remove("hidden");
+  }
+
+  function resetToPc() {
+    currentRoom = Math.floor(1000 + Math.random() * 9000).toString();
+    document.getElementById("roomCodeDisplay").innerText = currentRoom;
+    drawLocalQR(getBaseUrl() + "?oda=" + currentRoom);
+    document.getElementById("phoneConnectView").classList.add("hidden");
+    document.getElementById("pcConnectView").classList.remove("hidden");
+    enterWorkspace(currentRoom, false);
+  }
+
+  function connectFromPhone() {
+    const code = document.getElementById("joinInput").value.trim();
+    const err = document.getElementById("connectError");
+    if (code.length !== 4 || isNaN(code)) {
+      err.innerText = "⚠ Lütfen 4 haneli rakam girin.";
+      return;
+    }
+    err.innerText = "";
+    enterWorkspace(code, true);
+  }
+
+  function changeRoom() {
+    knownIds.clear();
+    totalItems = 0;
+    document.getElementById("feedList").innerHTML = "";
+    document.getElementById("feedSection").classList.add("hidden");
+    showPhoneConnect();
+  }
+
+  function enterWorkspace(room, hideConnect) {
+    currentRoom = room;
+    knownIds.clear();
+    totalItems = 0;
+    document.getElementById("feedList").innerHTML = "";
+    document.getElementById("feedSection").classList.add("hidden");
+    document.getElementById("activeRoomBadge").innerText = room;
+    document.getElementById("deviceLabel").innerText = `(${myDevice})`;
+
+    if (hideConnect) {
+      document.getElementById("pcConnectView").classList.add("hidden");
+      document.getElementById("phoneConnectView").classList.add("hidden");
+    }
+    document.getElementById("workspaceView").classList.remove("hidden");
+    startListening();
+  }
+
+  function processFile(file) {
+    return new Promise((resolve) => {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const maxW = 1920;
+            const scale = img.width > maxW ? maxW / img.width : 1;
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve({ kind: "file", name: file.name.replace(/\.heic$/i, ".jpg"), type: "image/jpeg", data: canvas.toDataURL("image/jpeg", 0.85) });
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve({ kind: "file", name: file.name, type: file.type, data: e.target.result });
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  async function handleFiles(files) {
+    const status = document.getElementById("uploadStatus");
+    status.classList.remove("error");
+
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].size > 15 * 1024 * 1024 && !files[i].type.startsWith("image/")) {
+        status.classList.add("error");
+        status.innerText = `⚠ ${files[i].name} 15 MB sınırını aşıyor.`;
+        continue;
+      }
+      status.innerText = `Gönderiliyor (${i + 1}/${files.length}): ${files[i].name}...`;
+      try {
+        const payload = await processFile(files[i]);
+        payload.sender = myDevice;
+        payload.ts = Date.now();
+        const res = await fetch(`${FIREBASE_DB_URL}/odalar/${currentRoom}.json`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("Yazma reddedildi");
+      } catch (err) {
+        status.classList.add("error");
+        status.innerText = "⚠ Yükleme hatası: " + err.message;
+        return;
+      }
+    }
+    status.innerText = "✓ Gönderildi!";
+    setTimeout(() => { status.innerText = ""; }, 2500);
+    document.getElementById("fileInput").value = "";
+    fetchRoomData();
+  }
+
+  async function sendText() {
+    const box = document.getElementById("textInput");
+    const txt = box.value.trim();
+    const status = document.getElementById("uploadStatus");
+    if (!txt) return;
+
+    status.classList.remove("error");
+    status.innerText = "Gönderiliyor...";
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/odalar/${currentRoom}.json`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "text", text: txt, sender: myDevice, ts: Date.now() })
+      });
+      if (!res.ok) throw new Error("Yazma hatası");
+      box.value = "";
+      status.innerText = "✓ Paylaşıldı!";
+      setTimeout(() => { status.innerText = ""; }, 2000);
+      fetchRoomData();
+    } catch (err) {
+      status.classList.add("error");
+      status.innerText = "⚠ Bağlantı hatası.";
+    }
+  }
+
+  function startListening() {
+    if (roomPoll) clearInterval(roomPoll);
+    fetchRoomData();
+    roomPoll = setInterval(fetchRoomData, 2000);
+  }
+
+  async function fetchRoomData() {
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/odalar/${currentRoom}.json`);
+      const data = await res.json();
+      if (!data) {
+        if (totalItems > 0) {
+          knownIds.clear();
+          totalItems = 0;
+          document.getElementById("feedList").innerHTML = "";
+          document.getElementById("feedSection").classList.add("hidden");
+        }
+        return;
+      }
+      const entries = Object.entries(data).sort((a, b) => (a[1].ts || 0) - (b[1].ts || 0));
+      entries.forEach(([id, item]) => {
+        if (!knownIds.has(id)) {
+          knownIds.add(id);
+          totalItems++;
+          renderItem(id, item);
+        }
+      });
+    } catch (e) {}
+  }
+
+  function copyText(btn, text) {
+    navigator.clipboard.writeText(text).catch(() => {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    });
+    const old = btn.innerText;
+    btn.innerText = "✓ Kopyalandı";
+    setTimeout(() => { btn.innerText = old; }, 2000);
+  }
+
+  function renderItem(id, item) {
+    document.getElementById("feedSection").classList.remove("hidden");
+    document.getElementById("itemCount").innerText = totalItems;
+    const list = document.getElementById("feedList");
+    const div = document.createElement("div");
+    div.className = "feed-item";
+
+    if (item.kind === "text") {
+      const safeText = item.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const isUrl = /^https?:\/\/\S+$/i.test(item.text.trim());
+      div.innerHTML = `
+        <div class="feed-left">
+          <div class="feed-icon">💬</div>
+          <div class="feed-info">
+            <div class="feed-meta">Gönderen: ${item.sender || "Cihaz"}</div>
+            <div class="text-preview">${isUrl ? `<a href="${item.text.trim()}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;">${safeText}</a>` : safeText}</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm" id="copy_${id}">Kopyala</button>
+      `;
+      list.prepend(div);
+      document.getElementById(`copy_${id}`).onclick = function() { copyText(this, item.text); };
+    } else {
+      const isImg = item.type && item.type.startsWith("image/");
+      div.innerHTML = `
+        <div class="feed-left">
+          ${isImg ? `<img src="${item.data}" class="feed-thumb" alt="">` : `<div class="feed-icon">📄</div>`}
+          <div class="feed-info">
+            <div class="feed-title">${item.name}</div>
+            <div class="feed-meta">Gönderen: ${item.sender || "Cihaz"}</div>
+          </div>
+        </div>
+        <a href="${item.data}" download="${item.name}" class="btn btn-sm" style="text-decoration:none; flex-shrink:0;">İndir</a>
+      `;
+      list.prepend(div);
+    }
+  }
+
+  async function clearRoom() {
+    document.getElementById("uploadStatus").innerText = "Temizleniyor...";
+    await fetch(`${FIREBASE_DB_URL}/odalar/${currentRoom}.json`, { method: "DELETE" });
+    knownIds.clear();
+    totalItems = 0;
+    document.getElementById("feedList").innerHTML = "";
+    document.getElementById("feedSection").classList.add("hidden");
+    document.getElementById("uploadStatus").innerText = "";
+  }
+
+  // --- NOT DEFTERİ FONKSİYONLARI ---
+  async function loadNotes() {
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/notlar.json`);
+      const data = await res.json();
+      notes = data || {};
+      renderNoteList();
+      if (!activeNoteId && Object.keys(notes).length > 0) {
+        selectNote(getSortedNoteIds()[0]);
+      }
+    } catch (e) {
+      document.getElementById("noteList").innerHTML = `<div style="padding:14px; font-size:12px; color:#dc2626;">Notlar yüklenemedi.</div>`;
+    }
+  }
+
+  function getSortedNoteIds() {
+    return Object.keys(notes).sort((a, b) => {
+      if (notes[a].pinned && !notes[b].pinned) return -1;
+      if (!notes[a].pinned && notes[b].pinned) return 1;
+      return (notes[b].updatedAt || 0) - (notes[a].updatedAt || 0);
+    });
+  }
+
+  function formatDate(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }) + " " +
+           d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function renderNoteList() {
+    const query = document.getElementById("searchInput").value.toLowerCase().trim();
+    const listEl = document.getElementById("noteList");
+    listEl.innerHTML = "";
+
+    const ids = getSortedNoteIds().filter(id => {
+      const n = notes[id];
+      return (n.title || "").toLowerCase().includes(query) || (n.content || "").toLowerCase().includes(query);
+    });
+
+    if (ids.length === 0) {
+      listEl.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:20px;">Not bulunamadı.</div>`;
+      return;
+    }
+
+    ids.forEach(id => {
+      const n = notes[id];
+      const div = document.createElement("div");
+      div.className = "note-card" + (id === activeNoteId ? " active" : "");
+      div.onclick = () => selectNote(id);
+      const title = (n.title && n.title.trim()) ? n.title : "Başlıksız Not";
+      const preview = (n.content && n.content.trim()) ? n.content.trim() : "İçerik yok...";
+      div.innerHTML = `
+        ${n.pinned ? `<span class="pin-badge">📌</span>` : ""}
+        <div class="note-card-title">${escapeHtml(title)}</div>
+        <div class="note-card-preview">${escapeHtml(preview)}</div>
+        <div class="note-card-date">${formatDate(n.updatedAt)}</div>
+      `;
+      listEl.appendChild(div);
+    });
+  }
+
+  function selectNote(id) {
+    if (!notes[id]) return;
+    activeNoteId = id;
+    const n = notes[id];
+
+    document.getElementById("emptyState").classList.add("hidden");
+    document.getElementById("editorToolbar").classList.remove("hidden");
+    document.getElementById("editorBody").classList.remove("hidden");
+    document.getElementById("editorFooter").classList.remove("hidden");
+
+    document.getElementById("noteTitle").value = n.title || "";
+    document.getElementById("noteContent").value = n.content || "";
+    updatePinButton(n.pinned);
+    updateNoteStats();
+    renderNoteList();
+  }
+
+  async function createNewNote() {
+    const newId = "note_" + Date.now();
+    notes[newId] = { title: "", content: "", pinned: false, updatedAt: Date.now() };
+    selectNote(newId);
+    document.getElementById("noteTitle").focus();
+    await saveCurrentNote();
+  }
+
+  function scheduleNoteSave() {
+    if (!activeNoteId) return;
+    updateNoteStats();
+    document.getElementById("saveStatus").innerText = "Kaydediliyor...";
+    notes[activeNoteId].title = document.getElementById("noteTitle").value;
+    notes[activeNoteId].content = document.getElementById("noteContent").value;
+    notes[activeNoteId].updatedAt = Date.now();
+    renderNoteList();
+
+    clearTimeout(noteSaveTimer);
+    noteSaveTimer = setTimeout(saveCurrentNote, 700);
+  }
+
+  async function saveCurrentNote() {
+    if (!activeNoteId || !notes[activeNoteId]) return;
+    try {
+      await fetch(`${FIREBASE_DB_URL}/notlar/${activeNoteId}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notes[activeNoteId])
+      });
+      document.getElementById("saveStatus").innerText = "✓ Kaydedildi";
+      document.getElementById("lastUpdated").innerText = "Son kayıt: " + formatDate(notes[activeNoteId].updatedAt);
+    } catch (e) {
+      document.getElementById("saveStatus").innerText = "⚠ Kayıt hatası!";
+    }
+  }
+
+  async function togglePin() {
+    if (!activeNoteId || !notes[activeNoteId]) return;
+    notes[activeNoteId].pinned = !notes[activeNoteId].pinned;
+    updatePinButton(notes[activeNoteId].pinned);
+    renderNoteList();
+    await saveCurrentNote();
+  }
+
+  function updatePinButton(isPinned) {
+    const btn = document.getElementById("pinBtn");
+    btn.classList.toggle("pinned", !!isPinned);
+    btn.innerText = isPinned ? "📌 Sabitlendi" : "📌 Sabitle";
+  }
+
+  function copyCurrentNote() {
+    const title = document.getElementById("noteTitle").value.trim();
+    const content = document.getElementById("noteContent").value;
+    const fullText = title ? `${title}\n\n${content}` : content;
+    navigator.clipboard.writeText(fullText);
+    const btn = document.getElementById("copyBtn");
+    btn.innerText = "✓ Kopyalandı";
+    setTimeout(() => { btn.innerText = "📋 Kopyala"; }, 2000);
+  }
+
+  async function deleteCurrentNote() {
+    if (!activeNoteId) return;
+    if (!confirm("Bu notu kalıcı olarak silmek istediğinize emin misiniz?")) return;
+    const delId = activeNoteId
